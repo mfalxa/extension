@@ -73,7 +73,7 @@ class ExtensionFit :
 		sourcesFound = 1
 		sourcesFoundDict = np.array([])
 		while sourcesFound != 0 :
-			newSources = self.gta.find_sources(sqrt_ts_threshold=sqrtTsThreshold, min_separation=minSeparation, max_iter=1,
+			newSources = self.gta.find_sources(sqrt_ts_threshold=sqrtTsThreshold, min_separation=minSeparation, max_iter=1, 
 				**{'search_skydir' : self.gta.roi.skydir, 'search_minmax_radius' : [rInner, sizeROI]})
 			sourcesFoundDict = np.append(sourcesFoundDict, newSources['sources'])
 			sourcesFound = len(newSources['sources'])
@@ -114,9 +114,8 @@ class ExtensionFit :
 			closeSources = self.gta.find_sources(sqrt_ts_threshold=2., min_separation=minSeparation, max_iter=1,
 							**{'search_skydir' : self.gta.roi.skydir, 'search_minmax_radius' : [0., rInner]})
 			dCenter = np.array([])
-			center = self.gta.roi.skydir
 			for i in range(len(closeSources['sources'])) :
-				dCenter = np.append(dCenter, center.separation(closeSources['sources'][i].skydir).value)
+				dCenter = np.append(dCenter, self.gta.roi.skydir.separation(closeSources['sources'][i].skydir).value)
 			closest = closeSources['sources'][np.argmin(dCenter)]['name']
 			for i in [x for x in range(len(closeSources['sources'])) if x != (np.argmin(dCenter))] :
 				self.gta.delete_source(closeSources['sources'][i]['name'])
@@ -132,19 +131,18 @@ class ExtensionFit :
 			self.gta.make_plots('innerInit')
 		
 		# Test for extension
-		extensionTest = self.gta.extension(closest, write_npy=debug, write_fits=debug, free_background=False, spatial_model='RadialDisk', update=True)
-		extLike = self.gta.like()
+		extensionTest = self.gta.extension(closest, make_plots=True, write_npy=debug, write_fits=debug, free_background=False, spatial_model='RadialDisk', update=True)
+		extLike = self.gta._roi_data['loglike']
 		extAIC = 2 * (len(self.gta.get_free_param_vector()) - extLike)
 		self.gta.write_roi('extFit')
 
 		if debug == True :
 			self.gta.make_plots('ext0')
 
-		
+		self.gta.load_roi('nSourcesFit', reload_sources=True)	
+	
 		for i in range(1, maxIter + 1) :
 			
-			self.gta.load_roi('nSourcesFit')
-
 			# Test for n point sources
 			nSourcesTest = self.gta.find_sources(sources_per_iter=1, sqrt_ts_threshold=sqrtTsThreshold, min_separation=minSeparation, max_iter=1,
 							**{'search_skydir' : self.gta.roi.skydir, 'search_minmax_radius' : [0., rInner]})
@@ -158,7 +156,7 @@ class ExtensionFit :
 				self.gta.free_source(nSourcesTest['sources'][0]['name'])
 				nFit = self.gta.fit()
 				self.gta.localize(nSourcesTest['sources'][0]['name'], write_npy=debug, write_fits=debug, update=True)
-				nAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta.like())
+				nAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
 				self.gta.write_roi('nSourcesFit')
 				
 				# Estimate Akaike Information Criterion difference between both models
@@ -166,8 +164,8 @@ class ExtensionFit :
 				print('AIC difference between both models = ', dm)
 
 				# Estimate TS_m+1
-				extensionTestPlus = self.gta.extension(closest, write_npy=debug, write_fits=debug, free_background=False, spatial_model='RadialDisk', update=True)
-				TSm1 = 2 * (self.gta.like() - extLike)
+				extensionTestPlus = self.gta.extension(closest, make_plots=True, write_npy=debug, write_fits=debug, free_background=False, spatial_model='RadialDisk', update=True)
+				TSm1 = 2 * (self.gta._roi_data['loglike'] - extLike)
 				print('TSm+1 = ', TSm1)
 
 				if debug == True :
@@ -180,10 +178,10 @@ class ExtensionFit :
 
 					# Set extension test to current state and save current extension fit ROI and load previous nSources fit ROI
 					extentionTest = extensionTestPlus
-					extLike = self.gta.like()
+					extLike = self.gta._roi_data['loglike']
 					extAIC = 2 * (len(self.gta.get_free_param_vector()) - extLike)
 					self.gta.write_roi('extFit')
-					self.gta.load_roi('nSourcesFit')
+					self.gta.load_roi('nSourcesFit', reload_sources=True)
 			
 			else :
 				self.gta.load_roi('extFit')
