@@ -1,0 +1,379 @@
+# STAR CLUSTERS AND ASSOCIATIONS
+# ---------------------------------------------------------------
+# References :
+# 1. Milky Way global survey of star clusters II (Kharchenko+, 2013)
+#    DOI : 10.1051/0004-6361/201322302 
+# 2. Universality of young cluster sequences (Pfalzner et al., 2009) 
+# 3. Young Massive Star Clusters (Portegies Zwart et al., 2010)
+#    DOI : 10.1146/annurev-astro-081309-130834
+# 4. A third red supergiant rich cluster in the Scutum-Crux arm (Clark et al., 2009)
+# 5. ROTATIONAL VELOCITIES FOR B0YB3 STARS IN SEVEN YOUNG CLUSTERS: FURTHER STUDYOF THE RELATIONSHIP BETWEEN ROTATION SPEED AND DENSITY IN STAR-FORMING REGIONS (Wolff et al., 2006) 
+# ---------------------------------------------------------------
+# 
+# Legend and units
+# ================
+# n :
+#   name : Name of the cluster from ref. 3
+#   age : Age of the cluster (Myr) from ref. 3
+#   logM : logMass of the cluster (solarMasses) from ref. 3
+#   p :
+#     radius : Angular size of the cluster (degree)
+#     galLon : Galactic longitude (degree)
+#     galLat : Galactic latitude (degree)
+#     distance : Distance from the sun (parsec)
+#     ref : Reference from which p-info is taken
+#
+# ---------------------------------------------------------------
+# Orion associations are composed of subclusters according to the articles below :
+# - Ori 1a : 'Discovery of a 21 Myr old stellar population in the Orion complex' (Kos et al., 2019)
+# - Ori 1b : 'A revisit to agglomerates of early-type Hipparcos stars' (Caballero et al., 2008)
+# - Ori 1c : 'Discovery of a 21 Myr old stellar population in the Orion complex' (Kos et al., 2019) 
+#
+# !WARNING! : if 'ref' != 1, 'radius' is estimated with the effective radius 're' given in ref. 3 using the relation radius = 4.735 * re
+#
+#
+
+############
+# Clusters #
+############
+
+0 :
+  name : 'DSB2003'
+  age : 3.5
+  logM : 3.80
+  0 :
+    name : 'DBSB_179'
+    galLon : 347.555
+    galLat : 0.212
+    radius : 0.115
+    nStar : 28
+    distance : 7908
+    ref : 1
+
+1 :
+  name : 'NGC 3603'
+  age : 2.00
+  logM : 4.10
+  0 :
+    name : 'NGC_3603'
+    galLon : 291.640
+    galLat : -0.499
+    radius : 0.085
+    nStar : 29
+    distance : 7158
+    ref : 1
+
+2 :
+  name : 'RSGC01'
+  age : 12.00
+  logM : 4.50
+  0 :
+    name : 'RSGC_1'
+    galLon : 25.274
+    galLat : -0.157
+    radius : 0.061
+    distance : 5830
+    ref : 2
+
+3 :
+  name : 'RSGC02'
+  age : 17.00
+  logM : 4.60
+  0 :
+    name : 'Stephenson_2'
+    galLon : 26.221
+    galLat : -0.134
+    radius : 0.090
+    nStar : 26
+    distance : 1128
+    ref : 1
+
+4 :
+  name : 'RSGC03'
+  age : 18.00
+  logM : 4.50
+  0 :
+    name : 'RSGC_3'
+    galLon : 29.200
+    galLat : -0.199
+    radius : 0.227
+    distance : 6000
+    ref : 4
+
+5 :
+  name : 'Trumpler 14'
+  age : 2.00
+  logM : 4.00
+  0 :
+    name : 'Trumpler_14'
+    galLon : 287.404
+    galLat : -0.581
+    radius : 0.130
+    nStar : 19
+    distance : 2248
+    ref : 1
+
+6 :
+  name : 'Wd 1'
+  age : 3.50
+  logM : 4.50
+  0 :
+    name : 'Westerlund_1'
+    galLon : 339.558
+    galLat :  -0.386
+    radius : 0.085
+    nStar : 13
+    distance : 7686
+    ref : 1
+
+7 :
+  name : 'Wd 2'
+  age : 2.00
+  logM : 4.00
+  0 :
+    name : 'Westerlund_2'
+    galLon : 284.257
+    galLat : -0.336
+    radius : 0.075
+    nStar : 51
+    distance : 4469
+    ref : 1
+
+8 :
+  name : 'hPer'
+  age : 12.80
+  logM : 4.20
+  0 :
+    name : 'NGC_869'
+    galLon : 134.877
+    galLat : -3.731
+    radius : 0.535
+    nStar : 2233
+    distance : 2300
+    ref : 1
+
+9 :
+  name : 'khi Per'
+  age : 12.80
+  logM : 4.10
+  0 :
+    name : 'NGC_884'
+    galLon : 135.012
+    galLat : -3.590
+    radius : 0.440
+    nStar : 1609
+    distance : 2345
+    ref : 1
+
+################
+# Associations #
+################
+
+10 :
+  name : 'CYgOB'
+  age : 2.50
+  logM : 4.40
+  0 :
+    name : 'Cyg_OB2'
+    galLon : 80.226
+    galLat : 0.789
+    radius : 0.425
+    nStar : 904
+    distance : 1593
+    ref : 1
+
+11 :
+  name : 'IC 1805'
+  age : 2.00
+  logM : 4.20
+  0 :
+    name : 'IC_1805'
+    galLon : 134.722
+    galLat : 0.921
+    radius : 0.270
+    nStar : 486
+    distance : 1700
+    ref : 1
+
+12 :
+  name : 'I Lac 1'
+  age : 14.00
+  logM : 3.40
+  0 :
+    name : 'I_Lac_1'
+    galLon : 96.666
+    galLat : -17.6294
+    radius : 15.2
+    distance : 368
+    ref : 5
+
+13 :
+  name : 'Lower_Cen-Crux'
+  age : 11.50
+  logM : 3.30
+  0 :
+    name : 'Lower_Cen-Crux'
+    galLon : 298.517
+    galLat : 5.493
+    radius : 34.570
+    distance : 118
+    ref : 5
+
+14 :
+  name : 'NGC_2244'
+  age : 2.00
+  logM : 3.90
+  0 :
+    name : 'NGC_2244'
+    galLon : 206.303
+    gallat : -2.078
+    radius : 0.365
+    nStar : 236
+    distance : 1532
+    ref : 1
+
+15 :
+  name : 'NGC_6611'
+  age : 3.00
+  logM : 4.40
+  0 :
+    name : 'NGC_6611'
+    galLon : 16.960
+    galLat : 0.836
+    radius : 0.240
+    nStar : 52
+    distance : 1646
+    ref : 1
+
+16 :
+  name : 'NGC 7380'
+  age : 2.00
+  logM : 3.80
+  0 :
+    name : 'NGC_7380'
+    galLon : 107.118
+    galLat : -0.918
+    radius : 0.260
+    nStar : 350
+    distance : 1800
+    ref : 1
+
+17 :
+  name : 'ONC'
+  age : 1.00
+  logM : 3.65
+  0 :
+    name : 'NGC_1976'
+    galLon : 208.983
+    galLat : -19.368
+    radius : 0.435
+    nStar : 44
+    distance : 458
+    ref : 1
+
+18 :
+  name : 'Ori Ia'
+  age : 11.40
+  logM : 3.7
+  0 :
+    name : 'ASSC_16'
+    galLon : 201.066
+    galLat : -18.527
+    radius : 0.660
+    nStar : 267
+    ref : 1
+  1 :
+    name : 'ASSC_18'
+    galLon : 202.017
+    galLat : -18.430
+    radius : 0.440
+    nStar : 94
+    ref : 1
+  2 :
+    name : 'ASSC_20'
+    galLon : 201.659
+    galLat : -17.522
+    radius : 0.725
+    nStar : 188
+    ref : 1
+  3 :
+    name : 'ASSC_21'
+    galLon : 199.946
+    galLat : -16.518
+    radius : 0.850
+    nStar : 232
+    ref : 1
+
+19 :
+  name : 'Ori Ib'
+  age : 1.70
+  logM : 3.60
+  0 :
+    name : 'Sigma_Ori'
+    galLon : 206.810
+    galLat : -17.345
+    radius : 0.400
+    nStar : 9
+    distance : 390
+    ref : 1
+  1 :
+    name : 'Collinder_70'
+    galLon : 204.859
+    galLat : -17.189
+    radius : 0.880
+    nStar : 411
+    distance : 379
+    ref : 1
+    
+20 :
+  name : 'Ori Ic'
+  age : 4.60
+  logM : 3.80
+  0 :
+    name : 'NGC_1977'
+    galLon : 208.512
+    galLat : -19.075
+    radius : 0.235
+    nStar : 24
+    distance : 358
+    ref : 1
+  1 :
+    name : 'NGC_1980'
+    galLon : 209.526
+    galLat : -19.585
+    radius : 0.230
+    nStar : 52
+    distance : 520
+    ref : 1
+  2 :
+    name : 'NGC_1981'
+    galLon : 208.072
+    galLat : -18.988
+    radius : 0.220
+    nStar : 31
+    distance : 388
+    ref : 1
+
+21 :
+  name : 'Upper Cen-Crux'
+  age : 14.50
+  logM : 3.60
+  0 :
+    name : 'Upper Cen-Lup'
+    galLon :
+    galLat : 
+    radius : 8.9
+    distance : 142
+    ref : 5
+
+22 :
+  name : 'U Sco'
+  age : 5.50
+  logM : 3.50
+  0 :
+    name : 'U Sco'
+    galLon : 357.669
+    galLat : 21.869
+    radius : 26.6
+    distance : 145 
+    ref : 2
