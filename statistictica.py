@@ -1,10 +1,14 @@
+import matplotlib
+
+matplotlib.use('Agg')
+
 import numpy as np
 import yaml
 from fermipy.gtanalysis import GTAnalysis
 import genConfig
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-
+import astropy.io.fits as fits
  
 def distanceFromCenter(centerGLon, centerGLat, sourceObject) :
 	center = SkyCoord(centerGLon * u.degree, centerGLat * u.degree)
@@ -27,16 +31,17 @@ class ExtensionFit :
 		# If debug, save ROI and make plots
 		if debug == True :
 			self.gta.write_roi('startModel')
+			self.gta.residmap(prefix='start', make_plots=True)
 			self.gta.make_plots('start')
 
 		# Get model source names
 		sourceList = self.gta.get_sources(distance=sizeROI + addToROI, square=True, exclude=['isodiff', 'galdiff'])
 
-		# Delete sources unassociated with TS < 100 or flags 5, 6, 8
+		catalog = fits.open('/users-data/mfalxa/code/gll_psch_v13.fit')
+
+		# Delete sources unassociated with TS < 50
 		for i in range(len(sourceList)) :
-			if sourceList[i]['catalog']['Flags'] in (5, 6, 8) :
-				self.gta.delete_source(sourceList[i]['name'])
-			if sourceList[i]['catalog']['CLASS'].isupper() == False and sourceList[i]['catalog']['TS'] < 100 :
+			if sourceList[i]['catalog']['TS_value'] < 50. and catalog[1].data['CLASS'][catalog[1].data['Source_Name'] == sourceList[i]['name']][0] == '' :
 				self.gta.delete_source(sourceList[i]['name'])
 
 		# Optmize spectral parameters for sources with npred > 1
@@ -45,38 +50,46 @@ class ExtensionFit :
 		# Get model source names
 		sourceList = self.gta.get_sources(distance=sizeROI + addToROI, square=True, exclude=['isodiff', 'galdiff'])
 
-		# Iterate source localizing on source list
-		for i in range(len(sourceList)) :
-			if sourceList[i].extended == False :
-				self.gta.localize(sourceList[i]['name'], write_fits=False, write_npy=False, update=True)
-
 		# Free sources within ROI size + extra distance from center
 		self.gta.free_sources(distance=sizeROI + addToROI, square=True)
 
 		# Re-optimize ROI
 		self.gta.optimize()
 
-		# Lock sources
-		self.gta.free_sources(distance=sizeROI + addToROI, square=True, free=False)
-
+		# Save and make plots if debug
 		if debug == True :
 			self.gta.write_roi('modelInitialized')
+			self.gta.residmap(prefix='initialized', make_plots=True)
 			self.gta.make_plots('initialized')
+
+		# Lock sources
+		self.gta.free_sources(distance=sizeROI + addToROI, square=True, free=False)
 
 	''' OUTER REGION '''
 
 	def outerRegionAnalysis(self, centerGLon, centerGLat, sizeROI, rInner, sqrtTsThreshold, minSeparation, debug) :
 
-		self.gta.free_sources(distance=sizeROI, square=True, free=False)
+		self.gta.free_sources(distance=sizeROI, pars='norm', square=True, free=True)
+		self.gta.free_sources(distance=rInner, free=False)
+		self.gta.free_source('galdiff', free=True)
+		self.gta.free_source('isodiff', free=False)
 
 		# Seek new sources until none are found
 		sourcesFound = 1
 		sourcesFoundDict = np.array([])
+		sourceModel = {'SpectrumType' : 'PowerLaw', 'Index' : 2.0, 'Scale' : 30000, 'Prefactor' : 1.e-15, 'SpatialModel' : 'PointSource'}
 		while sourcesFound != 0 :
-			newSources = self.gta.find_sources(sqrt_ts_threshold=sqrtTsThreshold, min_separation=minSeparation, max_iter=1, 
+			newSources = self.gta.find_sources(sqrt_ts_threshold=sqrtTsThreshold, min_separation=minSeparation, model=sourceModel,
 				**{'search_skydir' : self.gta.roi.skydir, 'search_minmax_radius' : [rInner, sizeROI]})
+			
 			sourcesFoundDict = np.append(sourcesFoundDict, newSources['sources'])
 			sourcesFound = len(newSources['sources'])
+			if sourcesFound > 0 :
+				for i in range(sourcesFound) :
+					if newSources['sources'][i]['ts'] > 100. :
+						self.gta.set_source_spectrum(newSources['sources'][i]['name'], spectrum_type='LogParabola')
+						self.gta.free_source(newSources['sources'][i]['name'])
+						self.gta.fit()
 
 		# Optimize all ROI
 		self.gta.optimize()
@@ -84,6 +97,7 @@ class ExtensionFit :
 		# Save sources found
 		if debug == True :
 			np.save('sourcesFoundOuter.npy', sourcesFoundDict)
+			self.gta.residmap(prefix='outer', make_plots=True)
 			self.gta.write_roi('outerAnalysisROI')
 			self.gta.make_plots('outer')
 
@@ -93,18 +107,21 @@ class ExtensionFit :
 	def innerRegionAnalysis(self, sizeROI, rInner, maxIter, sqrtTsThreshold, minSeparation, debug) :
 
 		self.gta.free_sources(distance=sizeROI, square=True, free=False)
-		
+		self.gta.free_sources(distance=rInner, free=True)
+
 		# Find closest sources to ROI center
 		closest = None
 		closests = self.gta.get_sources(distance=rInner, exclude=['isodiff', 'galdiff'])
 
+		catalog = fits.open('/users-data/mfalxa/code/gll_psch_v13.fit')
+
 		# Delete all unidentified sources
 		for i in range(len(closests)) :
-			if closests[i]['catalog']['CLASS'].isupper() == False :
+			if catalog[1].data['CLASS'][catalog[1].data['Source_Name'] == closests[i]['name']][0].isupper() == False  :
 				self.gta.delete_source(closests[i]['name'])
-			if closests[i]['catalog']['CLASS'] == 'SFR' :
+			if catalog[1].data['CLASS'][catalog[1].data['Source_Name'] == closests[i]['name']][0] == 'SFR' :
 				closest = closests[i]['name']
-		
+
 		# Keep closest source if identified with star forming region in catalog or look for new source closest to center within Rinner
 		if closest != None :
 			print('Closest source identified with star forming region : ', closest)
@@ -131,8 +148,8 @@ class ExtensionFit :
 			self.gta.make_plots('innerInit')
 		
 		# Test for extension
-		extensionTest = self.gta.extension(closest, make_plots=True, write_npy=debug, write_fits=debug, free_background=False, spatial_model='RadialDisk', update=True)
-		extLike = self.gta._roi_data['loglike']
+		extensionTest = self.gta.extension(closest, make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_radius=1.5, fit_position=True)
+		extLike = extensionTest['loglike_ext']
 		extAIC = 2 * (len(self.gta.get_free_param_vector()) - extLike)
 		self.gta.write_roi('extFit')
 
@@ -146,9 +163,13 @@ class ExtensionFit :
 			# Test for n point sources
 			nSourcesTest = self.gta.find_sources(sources_per_iter=1, sqrt_ts_threshold=sqrtTsThreshold, min_separation=minSeparation, max_iter=1,
 							**{'search_skydir' : self.gta.roi.skydir, 'search_minmax_radius' : [0., rInner]})
-			
-			if len(nSourcesTest['sources']) > 0 : 
-			
+
+			if len(nSourcesTest['sources']) > 0 :
+
+				if nSourcesTest['sources'][0]['ts'] > 100. :
+					self.gta.set_source_spectrum(nSourcesTest['sources'][0]['name'], spectrum_type='LogParabola')
+					self.gta.fit()
+
 				if debug == True :
 					self.gta.make_plots('nSources' + str(i))
 
@@ -164,8 +185,8 @@ class ExtensionFit :
 				print('AIC difference between both models = ', dm)
 
 				# Estimate TS_m+1
-				extensionTestPlus = self.gta.extension(closest, make_plots=True, write_npy=debug, write_fits=debug, free_background=False, spatial_model='RadialDisk', update=True)
-				TSm1 = 2 * (self.gta._roi_data['loglike'] - extLike)
+				extensionTestPlus = self.gta.extension(closest, make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_radius=1.5, fit_position=True)
+				TSm1 = 2 * (extensionTestPlus['loglike_ext'] - extLike)
 				print('TSm+1 = ', TSm1)
 
 				if debug == True :
@@ -178,7 +199,7 @@ class ExtensionFit :
 
 					# Set extension test to current state and save current extension fit ROI and load previous nSources fit ROI
 					extentionTest = extensionTestPlus
-					extLike = self.gta._roi_data['loglike']
+					extLike = extensionTestPlus['loglike_ext']
 					extAIC = 2 * (len(self.gta.get_free_param_vector()) - extLike)
 					self.gta.write_roi('extFit')
 					self.gta.load_roi('nSourcesFit', reload_sources=True)
@@ -187,5 +208,6 @@ class ExtensionFit :
 				self.gta.load_roi('extFit')
 				break
 
+		self.gta.fit()
 
 	''' CHECK OVERLAP '''
