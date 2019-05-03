@@ -9,12 +9,8 @@ import genConfig
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 import astropy.io.fits as fits
- 
-def distanceFromCenter(centerGLon, centerGLat, sourceObject) :
-	center = SkyCoord(centerGLon * u.degree, centerGLat * u.degree)
-	source = SkyCoord(sourceObject['glon'] * u.degree, sourceObject['glat'] * u.degree)
-	separation  = center.separation(source)
-	return separation.value
+
+
 
 class ExtensionFit :
 
@@ -25,7 +21,7 @@ class ExtensionFit :
 
 	''' INITIALIZE '''
 
-	def initialize(self, sizeROI, debug, addToROI) :
+	def initialize(self, sizeROI, rInner, addToROI, debug) :
 
 		self.gta.setup()
                 if self.gta.config['selection']['emin'] >= 10000 :
@@ -34,7 +30,7 @@ class ExtensionFit :
 		# Get model source names
 		sourceList = self.gta.get_sources(exclude=['isodiff', 'galdiff'])
 
-		catalog = fits.get_data('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
+		catalog = fits.getdata('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
 
 		# Delete sources unassociated with TS < 50
 		for i in range(len(sourceList)) :
@@ -48,7 +44,7 @@ class ExtensionFit :
 			if catalog['CLASS'][catalog['Source_Name'] == closests[i]['name']][0].isupper() == False  :
 				self.gta.delete_source(closests[i]['name'])
 			if catalog['CLASS'][catalog['Source_Name'] == closests[i]['name']][0] == 'SFR' :
-				self.target = closests[i]['name']
+				self.target = closests[i]
 
                 # If debug, save ROI and make plots
 		if debug == True :
@@ -84,7 +80,7 @@ class ExtensionFit :
 
 	''' OUTER REGION '''
 
-	def outerRegionAnalysis(self, centerGLon, centerGLat, sizeROI, rInner, sqrtTsThreshold, minSeparation, debug) :
+	def outerRegionAnalysis(self, sizeROI, rInner, sqrtTsThreshold, minSeparation, debug) :
 
 		self.gta.free_sources(distance=sizeROI, pars='norm', square=True, free=True)
 		self.gta.free_sources(distance=rInner, free=False)
@@ -109,7 +105,6 @@ class ExtensionFit :
 
 		# Save sources found
 		if debug == True :
-			np.save('sourcesFoundOuter.npy', sourcesFoundDict)
 			self.gta.residmap(prefix='outer', make_plots=True)
 			self.gta.write_roi('outerAnalysisROI')
 			self.gta.make_plots('outer')
@@ -124,15 +119,15 @@ class ExtensionFit :
 
 		# Keep closest source if identified with star forming region in catalog or look for new source closest to center within Rinner
 		if self.target != None :
-			print('Closest source identified with star forming region : ', self.target)
-			self.gta.set_source_morphology(self.target, **{'spatial_model' : 'PointSource'})
+			print('Closest source identified with star forming region : ', self.target['name'])
+			self.gta.set_source_morphology(self.target['name'], **{'spatial_model' : 'PointSource'})
 		else :
 			closeSources = self.gta.find_sources(sqrt_ts_threshold=2., min_separation=minSeparation, max_iter=1,
 							**{'search_skydir' : self.gta.roi.skydir, 'search_minmax_radius' : [0., rInner]})
 			dCenter = np.array([])
 			for i in range(len(closeSources['sources'])) :
 				dCenter = np.append(dCenter, self.gta.roi.skydir.separation(closeSources['sources'][i].skydir).value)
-			self.target = closeSources['sources'][np.argmin(dCenter)]['name']
+			self.target = closeSources['sources'][np.argmin(dCenter)]
 			for i in [x for x in range(len(closeSources['sources'])) if x != (np.argmin(dCenter))] :
 				self.gta.delete_source(closeSources['sources'][i]['name'])
 			self.gta.optimize(skip=['isodiff'])
@@ -148,7 +143,7 @@ class ExtensionFit :
                         self.gta.residmap(prefix='innerInit', make_plots=True)
 		
 		# Test for extension
-		extensionTest = self.gta.extension(self.target, make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
+		extensionTest = self.gta.extension(self.target['name'], make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
 		extLike = extensionTest['loglike_ext']
 		extAIC = 2 * (len(self.gta.get_free_param_vector()) - extLike)
 		self.gta.write_roi('extFit')
@@ -178,7 +173,7 @@ class ExtensionFit :
 				nSources.append(nSourcesTest['sources'])
 				self.gta.localize(nSourcesTest['sources'][0]['name'], write_npy=debug, write_fits=debug, update=True)
 				nAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
-                                self.gta.free_source(nSourcesTest['sources'][0]['name'])
+                                self.gta.free_source(nSourcesTest['sources'][0]['name'], free=True)
 				self.gta.write_roi('nSourcesFit')
 				
 				# Estimate Akaike Information Criterion difference between both models
@@ -186,7 +181,7 @@ class ExtensionFit :
 				print('AIC difference between both models = ', dm)
 
 				# Estimate TS_m+1
-				extensionTestPlus = self.gta.extension(self.target, make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
+				extensionTestPlus = self.gta.extension(self.target['name'], make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
 				TSm1 = 2 * (extensionTestPlus['loglike_ext'] - extLike)
 				print('TSm+1 = ', TSm1)
 
@@ -210,5 +205,38 @@ class ExtensionFit :
 				break
 
 		self.gta.fit()
+		distance = self.gta.roi.skydir.separation(self.target.skydir).value
+		extensionRadius = extensionTest['ext']
+
+		return distance, extensionRadius
+
                 
 	''' CHECK OVERLAP '''
+
+	def overlapDisk(radiusCatalog, radiusFit, d) :
+		
+		# Check radius sizes
+		if radiusCatalog < radiusFit :
+			r = float(radiusCatalog)
+			R = float(radiusFit)
+		else :
+			r = float(radiusFit)
+			R = float(radiusCatalog)
+
+		# Estimating overlapping area
+
+		if d < (r + R) :	
+			if R < (r + d) :
+				area = r**2 * np.arccos((d**2 + r**2 - R**2)/(2 * d * r)) + R**2 * np.arccos((d**2 + R**2 - r**2)/(2 * d * R)) - 0.5 * np.sqrt((-d + r + R) * (d + r - R) * (d - r + R) * (d + r + R))
+				overlap = round((area / (np.pi * r**2)) * 100, 2)
+			else :
+				area = np.pi * r**2
+				overlap = 100.0
+		else :
+			area = 0.
+			overlap =0.	
+
+		print('Overlapping surface : ', area)
+		print('Overlap : ', overlap)
+
+		return area, overlap
