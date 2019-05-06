@@ -4,7 +4,7 @@ matplotlib.use('Agg')
 
 import numpy as np
 from fermipy.gtanalysis import GTAnalysis
-
+import astropy.io.fits as fits
 
 class ExtensionFit :
 
