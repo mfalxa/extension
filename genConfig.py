@@ -19,7 +19,7 @@ def genConfigFileLTCube(name, eventFilePath, spacecraftFilePath, ltcubeFilePath,
 		'selection' : {
 			'emin' : emin,
 			'emax' : emax,
-			'zmax' : 90,
+			'zmax' : 105,
 			'evclass' : 128,
 			'evtype' : 3,
 			'filter' : None,
@@ -27,14 +27,14 @@ def genConfigFileLTCube(name, eventFilePath, spacecraftFilePath, ltcubeFilePath,
 			'glat' : targetGLat
 		},
 		'gtlike' : {
-			'edisp' : True,
+			'edisp' : False,
 			'irfs' : 'P8R3_SOURCE_V2'
 		},
 		'model' : {
 			'src_roiwidth' : src_roiwidth,
 			'galdiff' : '$FERMI_DIFFUSE_DIR/gll_iem_v07.fits',
 			'isodiff': 'iso_P8R3_SOURCE_V2_v1.txt',
-			'catalogs' : ['4FGL']
+			'catalogs' : '/users-data/mfalxa/code/gll_psch_v12.xml'
 		},
 		'fileio' : {
 			'outdir' : '/users-data/mfalxa/code/' + name
@@ -61,7 +61,7 @@ def genConfigFile(name, eventFilePath, spacecraftFilePath, targetGLon, targetGLa
 		'selection' : {
 			'emin' : emin,
 			'emax' : emax,
-			'zmax' : 90,
+			'zmax' : 105,
 			'evclass' : 128,
 			'evtype' : 3,
 			'filter' : None,
@@ -69,14 +69,14 @@ def genConfigFile(name, eventFilePath, spacecraftFilePath, targetGLon, targetGLa
 			'glat' : targetGLat
 		},
 		'gtlike' : {
-			'edisp' : True,
+			'edisp' : False,
 			'irfs' : 'P8R3_SOURCE_V2'
 		},
 		'model' : {
 			'src_roiwidth' : src_roiwidth,
 			'galdiff' : '$FERMI_DIFFUSE_DIR/gll_iem_v07.fits',
 			'isodiff': 'iso_P8R3_SOURCE_V2_v1.txt',
-			'catalogs' : ['4FGL']
+			'catalogs' : '/users-data/mfalxa/code/gll_psch_v12.xml'
 		},
 		'fileio' : {
 			'outdir' : '/users-data/mfalxa/code/' + name

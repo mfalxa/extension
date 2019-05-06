@@ -3,13 +3,9 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-import yaml
+import astropy.io.fits as fits
 from fermipy.gtanalysis import GTAnalysis
 import genConfig
-from astropy import units as u
-from astropy.coordinates import SkyCoord
-import astropy.io.fits as fits
-
 
 
 class ExtensionFit :
@@ -18,10 +14,15 @@ class ExtensionFit :
 		
 		self.gta = GTAnalysis(configFile, logging={'verbosity' : 3})
                 self.target = None
+		self.distance = None
+		self.extensionRadius = None
+		self.catalog = fits.getdata('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
 
 	''' INITIALIZE '''
 
-	def initialize(self, sizeROI, rInner, addToROI, debug) :
+	def initialize(self, sizeROI, rInner, addToROI, TSMin, debug) :
+
+		print(self.catalog)
 
 		self.gta.setup()
                 if self.gta.config['selection']['emin'] >= 10000 :
@@ -30,20 +31,18 @@ class ExtensionFit :
 		# Get model source names
 		sourceList = self.gta.get_sources(exclude=['isodiff', 'galdiff'])
 
-		catalog = fits.getdata('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
-
 		# Delete sources unassociated with TS < 50
 		for i in range(len(sourceList)) :
-			if sourceList[i]['catalog']['TS_value'] < 50. and catalog['CLASS'][catalog['Source_Name'] == sourceList[i]['name']][0] == '' :
+			if sourceList[i]['catalog']['TS_value'] < TSMin and self.catalog['CLASS'][self.catalog['Source_Name'] == sourceList[i]['name']][0] == '' :
 				self.gta.delete_source(sourceList[i]['name'])
 
                 closests = self.gta.get_sources(distance=rInner, exclude=['isodiff', 'galdiff'])
 
 		# Delete all unidentified sources
 		for i in range(len(closests)) :
-			if catalog['CLASS'][catalog['Source_Name'] == closests[i]['name']][0].isupper() == False  :
+			if self.catalog['CLASS'][self.catalog['Source_Name'] == closests[i]['name']][0].isupper() == False  :
 				self.gta.delete_source(closests[i]['name'])
-			if catalog['CLASS'][catalog['Source_Name'] == closests[i]['name']][0] == 'SFR' :
+			if self.catalog['CLASS'][self.catalog['Source_Name'] == closests[i]['name']][0] == 'SFR' :
 				self.target = closests[i]
 
                 # If debug, save ROI and make plots
@@ -112,7 +111,7 @@ class ExtensionFit :
 
 	''' INNER REGION '''
 
-	def innerRegionAnalysis(self, sizeROI, rInner, maxIter, sqrtTsThreshold, minSeparation, debug) :
+	def innerRegionAnalysis(self, sizeROI, rInner, maxIter, sqrtTsThreshold, minSeparation, dmMin, TSm1Min, debug) :
 
 		self.gta.free_sources(distance=sizeROI, square=True, free=False)
 		self.gta.free_sources(distance=rInner, free=True, exclude=['isodiff'])
@@ -145,7 +144,7 @@ class ExtensionFit :
 		# Test for extension
 		extensionTest = self.gta.extension(self.target['name'], make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
 		extLike = extensionTest['loglike_ext']
-		extAIC = 2 * (len(self.gta.get_free_param_vector()) - extLike)
+		extAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
 		self.gta.write_roi('extFit')
 
 		if debug == True :
@@ -188,7 +187,7 @@ class ExtensionFit :
 				if debug == True :
 					self.gta.make_plots('ext' + str(i))
 
-				if dm < 0 and TSm1 < 16 :
+				if dm < dmMin and TSm1 < TSm1Min :
 					self.gta.load_roi('extFit', reload_sources=True)
 					break
 				else :
@@ -196,7 +195,7 @@ class ExtensionFit :
 					# Set extension test to current state and save current extension fit ROI and load previous nSources fit ROI
 					extentionTest = extensionTestPlus
 					extLike = extensionTestPlus['loglike_ext']
-					extAIC = 2 * (len(self.gta.get_free_param_vector()) - extLike)
+					extAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
 					self.gta.write_roi('extFit')
 					self.gta.load_roi('nSourcesFit', reload_sources=True)
 			
@@ -205,25 +204,26 @@ class ExtensionFit :
 				break
 
 		self.gta.fit()
-		distance = self.gta.roi.skydir.separation(self.target.skydir).value
-		extensionRadius = extensionTest['ext']
 
-		return distance, extensionRadius
+		# Get distance and extension radius R68
+		self.distance = self.gta.roi.skydir.separation(self.target.skydir).value
+		self.extensionRadius = extensionTest['ext']
 
                 
 	''' CHECK OVERLAP '''
 
-	def overlapDisk(radiusCatalog, radiusFit, d) :
+	def overlapDisk(self, radiusCatalog) :
 		
 		# Check radius sizes
-		if radiusCatalog < radiusFit :
+		if radiusCatalog < self.extensionRadius :
 			r = float(radiusCatalog)
-			R = float(radiusFit)
+			R = float(self.extensionRadius)
 		else :
-			r = float(radiusFit)
+			r = float(self.extensionRadius)
 			R = float(radiusCatalog)
 
 		# Estimating overlapping area
+		d = self.distance
 
 		if d < (r + R) :	
 			if R < (r + d) :
@@ -239,4 +239,4 @@ class ExtensionFit :
 		print('Overlapping surface : ', area)
 		print('Overlap : ', overlap)
 
-		return area, overlap
+		return overlap
