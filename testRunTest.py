@@ -46,12 +46,20 @@ for i in a :
 
 		# Analysis
 		sizeROI = roiwidth / 2
+		addToROI = 0.1
 		radius = clusters[i][j]['radius']
 		rInner = radius + 1.
+		sqrtTsThreshold = 3.
+		maxIter = 5
+		minSeparation = 0.5
 
 		if radius > 1. :
 			pass
 
+		''' WRITE VARIABLES IN *.TXT FILE '''
+
+		parameters = np.array(['name : '+str(name), 'glon : '+str(targetGLon), 'glat : '+str(targetGLat), 'roiwidth : '+str(roiwidth), 'binsz : '+str(binsz), 'binsperdec : '+str(binsperdec), 'emin : '+str(emin), 'emax : '+str(emax), 'src_roiwidth : '+str(src_roiwidth), 'sizeROI : '+str(sizeROI), 'addToROI : '+str(addToROI), 'radius : '+str(radius), 'rInner : '+str(rInner), 'sqrtTsThreshold : '+str(sqrtTsThreshold), 'maxIter : '+str(maxIter), 'minSeparation : '+str(minSeparation)])
+		np.savetxt('parameters.txt', parameters)
 
 		''' GENERATE CONFIG FILE AND GTA INSTANCE '''
 		
@@ -90,7 +98,7 @@ for i in a :
 		''' RUN ANALYSIS '''
 #==================================================#
 
-		Analysis.initialize(sizeROI, 0.1)
-		Analysis.outerRegionAnalysis(targetGLon, targetGLat, sizeROI, rInner, 3., 0.5, debug)
-		Analysis.innerRegionAnalysis(sizeROI, rInner, 5, 3., 0.5, debug)
+		Analysis.initialize(sizeROI, addToROI)
+		Analysis.outerRegionAnalysis(targetGLon, targetGLat, sizeROI, rInner, sqrtTsThreshold, minSeparation, debug)
+		Analysis.innerRegionAnalysis(sizeROI, rInner, maxIter, sqrtTsThreshold, minSeparation, debug)
 		Analysis.gta.write_roi(name)

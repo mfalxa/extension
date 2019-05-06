@@ -3,9 +3,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-import astropy.io.fits as fits
 from fermipy.gtanalysis import GTAnalysis
-import genConfig
 
 
 class ExtensionFit :
@@ -14,8 +12,7 @@ class ExtensionFit :
 		
 		self.gta = GTAnalysis(configFile, logging={'verbosity' : 3})
                 self.target = None
-		self.distance = None
-		self.extensionRadius = None
+		self.targetRadius = None
 		self.catalog = fits.getdata('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
 
 	''' INITIALIZE '''
@@ -203,9 +200,11 @@ class ExtensionFit :
 
 		self.gta.fit()
 
-		# Get distance and extension radius R68
-		self.distance = self.gta.roi.skydir.separation(self.target.skydir).value
-		self.extensionRadius = extensionTest['ext']
+		# Get source radius depending on spatial model
+		if self.target.extended == True :
+			self.targetRadius = self.target['SpatialWidth']
+		else :
+			self.targetRadius = self.target['pos_r95']
 
                 
 	''' CHECK OVERLAP '''
@@ -213,15 +212,15 @@ class ExtensionFit :
 	def overlapDisk(self, radiusCatalog) :
 		
 		# Check radius sizes
-		if radiusCatalog < self.extensionRadius :
+		if radiusCatalog < self.targetRadius :
 			r = float(radiusCatalog)
-			R = float(self.extensionRadius)
+			R = float(self.targetRadius)
 		else :
-			r = float(self.extensionRadius)
+			r = float(self.targetRadius)
 			R = float(radiusCatalog)
 
 		# Estimating overlapping area
-		d = self.distance
+		d = self.gta.roi.skydir.separation(self.target.skydir).value
 
 		if d < (r + R) :	
 			if R < (r + d) :
