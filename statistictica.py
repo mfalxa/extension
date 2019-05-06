@@ -22,8 +22,6 @@ class ExtensionFit :
 
 	def initialize(self, sizeROI, rInner, addToROI, TSMin, debug) :
 
-		print(self.catalog)
-
 		self.gta.setup()
                 if self.gta.config['selection']['emin'] >= 10000 :
                         self.gta.set_parameter('galdiff', 'Scale', 30000)

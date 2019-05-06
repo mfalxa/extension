@@ -26,9 +26,6 @@ if newListFile == True :
 
 clusters = yaml.load(open('clusterz.yaml'))
 
-''' LOAD 3FHL IN FITS FORMAT '''
-
-catalog = fits.getdata('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
 
 #########################################
 ''' ITERATE ANALYSIS FOR EACH CLUSTER '''
@@ -114,6 +111,7 @@ for i in a :
 						src_roiwidth)
 	
 		Analysis = statistictica.ExtensionFit('/users-data/mfalxa/code/' + name + '/config.yaml')
+
 
 #==================================================#
 		''' RUN ANALYSIS '''
