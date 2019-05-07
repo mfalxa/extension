@@ -31,7 +31,7 @@ clusters = yaml.load(open('clusterz.yaml'))
 ''' ITERATE ANALYSIS FOR EACH CLUSTER '''
 #########################################
 
-a = [10]
+a = [0]
 
 for i in a :
 	for j in range(len(clusters[i]) - 3) :
@@ -86,9 +86,9 @@ for i in a :
 		if newListFile == False :
 
 			genConfig.genConfigFileLTCube(name,
-							'/users-data/mfalxa/code/Cyg_2704_07h02/ft1_00.fits',
-							'/users-data/mfalxa/code/Cyg_2704_07h02/scfile_00.txt',
-							'/users-data/mfalxa/code/Cyg_2704_07h02/ltcube_00.fits',
+							'/users-data/mfalxa/code/DBSB_0605_18h48/ft1_00.fits',
+							'/users-data/mfalxa/code/DBSB_0605_18h48/scfile_00.txt',
+							'/users-data/mfalxa/code/DBSB_0605_18h48/ltcube_00.fits',
 							targetGLon,
 							targetGLat,
 							roiwidth,
@@ -123,5 +123,5 @@ for i in a :
 		Analysis.overlapDisk(radius)
 		Analysis.gta.write_roi(name)
 		Analysis.gta.make_plots('end')
-		Analysis.gta.sed(name=Analysis.target['name'], loge_bins=logeBins, make_plots=True)
+		Analysis.gta.sed(name='TESTSOURCE', loge_bins=logeBins, make_plots=True)
 		Analysis.gta.residmap(prefix='end', make_plots=True)

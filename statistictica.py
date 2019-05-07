@@ -15,6 +15,11 @@ class ExtensionFit :
 		self.targetRadius = None
 		self.catalog = fits.getdata('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
 
+	def setSourceName(self, sourceObject, newName) :
+		self.gta.delete_source(sourceObject['name'])
+		self.gta.add_source(newName, sourceObject)
+
+
 	''' INITIALIZE '''
 
 	def initialize(self, sizeROI, rInner, addToROI, TSMin, debug) :
@@ -22,7 +27,11 @@ class ExtensionFit :
 		self.gta.setup()
                 if self.gta.config['selection']['emin'] >= 10000 :
                         self.gta.set_parameter('galdiff', 'Scale', 30000)
-                                      
+
+		if debug == True :
+			self.gta.make_plots('startAll')
+			self.gta.residmap(prefix='startAll', make_plots=True)                
+                      
 		# Get model source names
 		sourceList = self.gta.get_sources(exclude=['isodiff', 'galdiff'])
 
@@ -39,6 +48,7 @@ class ExtensionFit :
 				self.gta.delete_source(closests[i]['name'])
 			if self.catalog['CLASS'][self.catalog['Source_Name'] == closests[i]['name']][0] == 'SFR' :
 				self.target = closests[i]
+				self.setSourceName(self.target, 'TESTSOURCE')
 
                 # If debug, save ROI and make plots
 		if debug == True :
@@ -92,7 +102,7 @@ class ExtensionFit :
 					self.gta.set_source_spectrum(newSources['sources'][i]['name'], spectrum_type='LogParabola')
 					self.gta.free_source(newSources['sources'][i]['name'])
 					self.gta.fit()
-                                        self.gta.free_sources(newSources['sources'][i]['name'], free=False) 
+                                        self.gta.free_source(newSources['sources'][i]['name'], free=False) 
 
 		# Optimize all ROI
 		self.gta.optimize(skip=['isodiff'])
@@ -122,6 +132,7 @@ class ExtensionFit :
 			for i in range(len(closeSources['sources'])) :
 				dCenter = np.append(dCenter, self.gta.roi.skydir.separation(closeSources['sources'][i].skydir).value)
 			self.target = closeSources['sources'][np.argmin(dCenter)]
+			self.setSourceName(self.target, 'TESTSOURCE')
 			for i in [x for x in range(len(closeSources['sources'])) if x != (np.argmin(dCenter))] :
 				self.gta.delete_source(closeSources['sources'][i]['name'])
 			self.gta.optimize(skip=['isodiff'])
@@ -137,7 +148,7 @@ class ExtensionFit :
                         self.gta.residmap(prefix='innerInit', make_plots=True)
 		
 		# Test for extension
-		extensionTest = self.gta.extension(self.target['name'], make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
+		extensionTest = self.gta.extension('TESTSOURCE', make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
 		extLike = extensionTest['loglike_ext']
 		extAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
 		self.gta.write_roi('extFit')
@@ -159,7 +170,7 @@ class ExtensionFit :
 					self.gta.set_source_spectrum(nSourcesTest['sources'][0]['name'], spectrum_type='LogParabola')
 					self.gta.free_source(nSourcesTest['sources'][0]['name'])
 					self.gta.fit()
-                                        self.gta.free_sources(nSourcesTest['sources'][0]['name'], free=False)
+                                        self.gta.free_source(nSourcesTest['sources'][0]['name'], free=False)
 
 				if debug == True :
 					self.gta.make_plots('nSources' + str(i))
@@ -175,7 +186,7 @@ class ExtensionFit :
 				print('AIC difference between both models = ', dm)
 
 				# Estimate TS_m+1
-				extensionTestPlus = self.gta.extension(self.target['name'], make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
+				extensionTestPlus = self.gta.extension('TESTSOURCE', make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
 				TSm1 = 2 * (extensionTestPlus['loglike_ext'] - extLike)
 				print('TSm+1 = ', TSm1)
 
@@ -201,16 +212,21 @@ class ExtensionFit :
 		self.gta.fit()
 
 		# Get source radius depending on spatial model
-		if self.target.extended == True :
-			self.targetRadius = self.target['SpatialWidth']
-		else :
-			self.targetRadius = self.target['pos_r95']
+		endSources = self.gta.get_sources()
+		for i in range(len(endSources)) :
+			if endSources[i]['name'] == 'TESTSOURCE' :
+				if endSources[i].extended == True :
+					self.targetRadius = endSources[i]['SpatialWidth']
+				else :
+					self.targetRadius = endSources[i]['pos_r95']
 
                 
 	''' CHECK OVERLAP '''
 
 	def overlapDisk(self, radiusCatalog) :
 		
+		print('Target radius : ', self.targetRadius)
+
 		# Check radius sizes
 		if radiusCatalog < self.targetRadius :
 			r = float(radiusCatalog)
@@ -221,6 +237,7 @@ class ExtensionFit :
 
 		# Estimating overlapping area
 		d = self.gta.roi.skydir.separation(self.target.skydir).value
+		print('Distance from center : ', d)
 
 		if d < (r + R) :	
 			if R < (r + d) :
@@ -231,7 +248,7 @@ class ExtensionFit :
 				overlap = 100.0
 		else :
 			area = 0.
-			overlap =0.	
+			overlap = 0.	
 
 		print('Overlapping surface : ', area)
 		print('Overlap : ', overlap)
