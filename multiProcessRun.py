@@ -42,7 +42,7 @@ def clusterAnalysis(name, radius, sizeROI, rInner, addToROI, TSMin, sqrtTsThresh
 	Analysis.overlapDisk(radius)
 	Analysis.gta.write_roi(name)
 	Analysis.gta.make_plots('end')
-	Analysis.gta.sed(name=Analysis.target['name'], loge_bins=logeBins, make_plots=True)
+	Analysis.gta.sed(name='TESTSOURCE', loge_bins=logeBins, make_plots=True)
 	Analysis.gta.residmap(prefix='end', make_plots=True)
 
 
