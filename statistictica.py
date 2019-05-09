@@ -124,7 +124,7 @@ class ExtensionFit :
 		# Keep closest source if identified with star forming region in catalog or look for new source closest to center within Rinner
 		if self.target != None :
 			print('Closest source identified with star forming region : ', self.target['name'])
-			self.gta.set_source_morphology(self.target['name'], **{'spatial_model' : 'PointSource'})
+			self.gta.set_source_morphology('TESTSOURCE', **{'spatial_model' : 'PointSource'})
 		else :
 			closeSources = self.gta.find_sources(sqrt_ts_threshold=2., min_separation=minSeparation, max_iter=1,
 							**{'search_skydir' : self.gta.roi.skydir, 'search_minmax_radius' : [0., rInner]})
