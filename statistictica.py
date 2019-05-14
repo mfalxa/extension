@@ -13,6 +13,7 @@ class ExtensionFit :
 		self.gta = GTAnalysis(configFile, logging={'verbosity' : 3})
                 self.target = None
 		self.targetRadius = None
+		self.distance = None
 		self.catalog = fits.getdata('/users-data/mfalxa/code/gll_psch_v13.fit', 1)
 
 	def setSourceName(self, sourceObject, newName) :
@@ -45,7 +46,7 @@ class ExtensionFit :
 		# Delete all unidentified sources
 		for i in range(len(closests)) :
 			if self.catalog['CLASS'][self.catalog['Source_Name'] == closests[i]['name']][0].isupper() == False  :
-				self.gta.delete_source(closests[i]['name'])
+				self.gta.delete_source(closests[i]['name'])	
 			if self.catalog['CLASS'][self.catalog['Source_Name'] == closests[i]['name']][0] == 'SFR' :
 				self.target = closests[i]
 				self.setSourceName(self.target, 'TESTSOURCE')
@@ -116,7 +117,7 @@ class ExtensionFit :
 
 	''' INNER REGION '''
 
-	def innerRegionAnalysis(self, sizeROI, rInner, maxIter, sqrtTsThreshold, minSeparation, dmMin, TSm1Min, debug) :
+	def innerRegionAnalysis(self, sizeROI, rInner, maxIter, sqrtTsThreshold, minSeparation, dmMin, TSm1Min, TSextMin, debug) :
 
 		self.gta.free_sources(distance=sizeROI, square=True, free=False)
 		self.gta.free_sources(distance=rInner, free=True, exclude=['isodiff'])
@@ -132,6 +133,7 @@ class ExtensionFit :
 			for i in range(len(closeSources['sources'])) :
 				dCenter = np.append(dCenter, self.gta.roi.skydir.separation(closeSources['sources'][i].skydir).value)
 			self.target = closeSources['sources'][np.argmin(dCenter)]
+			print('Target name : ', self.target['name'])
 			self.setSourceName(self.target, 'TESTSOURCE')
 			for i in [x for x in range(len(closeSources['sources'])) if x != (np.argmin(dCenter))] :
 				self.gta.delete_source(closeSources['sources'][i]['name'])
@@ -150,10 +152,13 @@ class ExtensionFit :
 		# Test for extension
 		extensionTest = self.gta.extension('TESTSOURCE', make_plots=True, write_npy=debug, write_fits=debug, spatial_model='RadialDisk', update=True, free_background=True, fit_position=True)
 		extLike = extensionTest['loglike_ext']
+		TSext = extensionTest['ts_ext']
+		print('TSext : ', TSext)
 		extAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
 		self.gta.write_roi('extFit')
 
 		if debug == True :
+			self.gta.residmap(prefix='ext0', make_plots=True)
 			self.gta.make_plots('ext0')
 
 		self.gta.load_roi('nSourcesFit', reload_sources=True)	
@@ -179,7 +184,8 @@ class ExtensionFit :
 				self.gta.localize(nSourcesTest['sources'][0]['name'], write_npy=debug, write_fits=debug, update=True)
 				nAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
                                 self.gta.free_source(nSourcesTest['sources'][0]['name'], free=True)
-				self.gta.write_roi('nSourcesFit')
+				self.gta.residmap(prefix='nSources' + str(i), make_plots=True)
+				self.gta.write_roi('n1SourcesFit')
 				
 				# Estimate Akaike Information Criterion difference between both models
 				dm = extAIC - nAIC
@@ -191,6 +197,7 @@ class ExtensionFit :
 				print('TSm+1 = ', TSm1)
 
 				if debug == True :
+					self.gta.residmap(prefix='ext' + str(i), make_plots=True)
 					self.gta.make_plots('ext' + str(i))
 
 				if dm < dmMin and TSm1 < TSm1Min :
@@ -199,15 +206,22 @@ class ExtensionFit :
 				else :
 
 					# Set extension test to current state and save current extension fit ROI and load previous nSources fit ROI
-					extentionTest = extensionTestPlus
+					extensionTest = extensionTestPlus
 					extLike = extensionTestPlus['loglike_ext']
+					TSext = extensionTestPlus['ts_ext']
+					print('TSext : ', TSext)	
 					extAIC = 2 * (len(self.gta.get_free_param_vector()) - self.gta._roi_data['loglike'])
 					self.gta.write_roi('extFit')
-					self.gta.load_roi('nSourcesFit', reload_sources=True)
+					self.gta.load_roi('n1SourcesFit', reload_sources=True)
+					self.gta.write_roi('nSourcesFit')
 			
 			else :
-				self.gta.load_roi('extFit', reload_sources=True)
-				break
+				if TSext > TSextMin :
+					self.gta.load_roi('extFit', reload_sources=True)
+					break
+				else :
+					self.gta.load_roi('nSourcesFit', reload_sources=True)
+					break
 
 		self.gta.fit()
 
@@ -215,6 +229,8 @@ class ExtensionFit :
 		endSources = self.gta.get_sources()
 		for i in range(len(endSources)) :
 			if endSources[i]['name'] == 'TESTSOURCE' :
+				self.target = endSources[i]
+				self.distance = self.gta.roi.skydir.separation(endSources[i].skydir).value
 				if endSources[i].extended == True :
 					self.targetRadius = endSources[i]['SpatialWidth']
 				else :
@@ -223,7 +239,7 @@ class ExtensionFit :
                 
 	''' CHECK OVERLAP '''
 
-	def overlapDisk(self, radiusCatalog) :
+	def overlapDisk(self, rInner, radiusCatalog) :
 		
 		print('Target radius : ', self.targetRadius)
 
@@ -236,7 +252,7 @@ class ExtensionFit :
 			R = float(radiusCatalog)
 
 		# Estimating overlapping area
-		d = self.gta.roi.skydir.separation(self.target.skydir).value
+		d = self.distance
 		print('Distance from center : ', d)
 
 		if d < (r + R) :	
@@ -253,4 +269,19 @@ class ExtensionFit :
 		print('Overlapping surface : ', area)
 		print('Overlap : ', overlap)
 
-		return overlap
+		if overlap > 68. and self.distance < rInner :
+			associated = True
+		else :
+			associated = False
+
+		return associated
+
+	''' CHECK UPPER LIMIT '''
+
+	def upperLimit(self, name, radius) :
+		sourceModel = {'SpectrumType' : 'PowerLaw', 'Index' : 2.0, 'Scale' : 30000, 'Prefactor' : 1.e-15, 'SpatialModel' : 'RadialDisk', 'SpatialWidth' : radius, 'glon' : self.gta.config['selection']['glon'], 'glat' : self.gta.config['selection']['glat']}
+		self.gta.add_source(name, sourceModel, free=True)
+		self.gta.fit()
+		self.gta.residmap(prefix='upperLimit', make_plots=True)
+		print('Upper limit : ', self.gta.get_sources()[0]['flux_ul95'])
+
