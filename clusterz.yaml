@@ -226,7 +226,7 @@
   0 :
     name : 'NGC_2244'
     galLon : 206.303
-    gallat : -2.078
+    galLat : -2.078
     radius : 0.365
     nStar : 236
     distance : 1532
@@ -359,9 +359,9 @@
   age : 14.50
   logM : 3.60
   0 :
-    name : 'Upper Cen-Lup'
-    galLon :
-    galLat : 
+    name : 'Upper_Cen-Lup'
+    galLon : 331.0211
+    galLat : 12.5023
     radius : 8.9
     distance : 142
     ref : 5
@@ -371,7 +371,7 @@
   age : 5.50
   logM : 3.50
   0 :
-    name : 'U Sco'
+    name : 'U_Sco'
     galLon : 357.669
     galLat : 21.869
     radius : 26.6
